@@ -1,5 +1,5 @@
 ---
-title: "Population dynamic"
+title: "Population and household dynamic"
 output: github_document
 ---
 
@@ -7,24 +7,135 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## GitHub Documents
+# Population and household dynamic
 
-This is an R Markdown format used for publishing markdown documents to GitHub. When you click the **Knit** button all R code chunks are run and a markdown file (.md) suitable for publishing to GitHub is generated.
+## Download the `demography` module
 
-## Including Code
-
-You can include R code in the document as follows:
-
-```{r cars}
-summary(cars)
+```{r, eval = FALSE}
+library(dymiumCore)
+download_module(name = "demography")
+download_module(name = "matsim")
+set.seed(728)
 ```
 
-## Including Plots
+## Set active scenario
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+dymiumCore::set_active_scenario(name = "population-dynamic")
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Import events
+
+```{r}
+library(modules)
+library(here)
+event_demography_age <- modules::use(here::here("modules/demography/age.R"))
+event_demography_birth <- modules::use(here::here("modules/demography/birth.R"))
+event_demography_death <- modules::use(here::here("modules/demography/death.R"))
+event_demography_marriage <- modules::use(here::here("modules/demography/marriage.R"))
+event_demography_separation <- modules::use(here::here("modules/demography/separation.R"))
+event_demography_divorce <- modules::use(here::here("modules/demography/divorce.R"))
+event_demography_breakup <- modules::use(here::here("modules/demography/breakup.R"))
+event_demography_cohabit <- modules::use(here::here("modules/demography/cohabit.R"))
+event_demography_migration <- modules::use(here::here("modules/demography/migration.R"))
+```
+
+## Setup a world
+
+```{r}
+world <- World$new()
+
+# add agents
+world$add(x = Population$new(ind_data = toy_individuals, 
+                             hh_data = toy_households, 
+                             pid_col = "pid", 
+                             hid_col = "hid"))
+
+# add models
+models <- list(fertility = list(yes = 0.05, no = 0.95),
+              birth_multiplicity = list("single" = 0.97, "twins" = 0.03),
+              birth_sex_ratio = list(male = 0.51, female = 0.49),
+              death = list(yes = 0.1, no = 0.9),
+              marriage_cohab_male = list(yes = 0.1, no = 0.9),
+              marriage_no_cohab_male = list(yes = 0.1, no = 0.9),
+              marriage_no_cohab_female = list(yes = 0.1, no = 0.9),
+              separate_male = list(yes = 0.1, no = 0.9),
+              separate_child_custody = list(male = 0.2, female = 0.8),
+              separate_hhtype = list(lone = 0.5, group = 0.5),
+              separate_hf_random_join = list("1" = 0.4, "2" = 0.3, "3" = 0.2, "4" = 0.1),
+              divorce_male = list(yes = 0.5, no = 0.9),
+              divorce_female = list(yes = 0.5, no = 0.9),
+              cohabitation_male = list(yes = 0.1, no = 0.9),
+              cohabitation_female = list(yes = 0.1, no = 0.9),
+              breakup = list(yes = 0.1, no = 0.9),
+              breakup_child_custody = list(male = 0.2, female = 0.8),
+              breakup_hhtype = list(lone = 0.5, group = 0.5),
+              breakup_hf_random_join = list("1" = 0.4, "2" = 0.3, "3" = 0.2, "4" = 0.1),
+              leavehome_male = list(yes = 0.3, no = 0.7),
+              leavehome_female = list(yes = 0.2, no = 0.8),
+              leavehome_hhtype = list(lone = 0.2, group = 0.8),
+              leavehome_hf_random_join = list("1" = 0.5, "2" = 0.3, "3" = 0.1, "4" = 0.1),
+              migrant_individuals = dymiumCore::toy_individuals, 
+              migrant_households = dymiumCore::toy_households)
+
+for (i in seq_along(models)) {
+  world$add(models[[i]], name = names(models)[i])
+}
+```
+
+# Setup a simulation pipeline
+
+```{r}
+for (i in 1:5) {
+  world$start_iter(time_step = i, unit = "year") %>%
+    event_demography_age$run(.) %>%
+    event_demography_birth$run(.) %>%
+    event_demography_death$run(.) %>%
+    event_demography_cohabit$run(.) %>%
+    event_demography_marriage$run(.) %>%
+    event_demography_divorce$run(.) %>%
+    event_demography_breakup$run(.) %>%
+    event_demography_separation$run(.) %>%
+    event_demography_migration$run(., target = 10)
+}
+```
+
+# Randomise the sequence of some events
+
+```{r}
+HouseholdFormationPipe <- Pipeline$new(
+  . %>%
+    event_demography_cohabit$run(.) %>%
+    event_demography_marriage$run(.) %>%
+    event_demography_divorce$run(.) %>%
+    event_demography_breakup$run(.) %>%
+    event_demography_separation$run(.)
+)
+```
+
+
+```{r}
+for (i in 6:10) {
+  world$start_iter(time_step = i, unit = "year") %>%
+    event_demography_age$run(.) %>%
+    event_demography_birth$run(.) %>%
+    event_demography_death$run(.) %>%
+    HouseholdFormationPipe$run(., shuffle = T) %>%
+    event_demography_migration$run(., target = 10)
+}
+```
+
+# Visualise the result
+
+```{r}
+library(ggplot2)
+library(ggplot2)
+library(ggplot2)
+
+log_data <- dymiumCore::get_log(world)
+history_data <- dymiumCore::get_history(world)
+
+plot_history(x = world, by_entity = T)
+```
+

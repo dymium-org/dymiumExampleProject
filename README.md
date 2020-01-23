@@ -9,3 +9,5 @@
 
 This is an example setup of a microsimulation project using the
 [dymiumCore](https://github.com/dymium-org/dymiumCore) package.
+
+  - See the `scenarios` folder for example use-cases.
