@@ -27,6 +27,7 @@ Imports:
     lgr,
     crayon,
     checkmate,
-    rJava
+    rJava,
+    modules
 Remotes:
   github::dymium-org/dymiumCore
