@@ -1,5 +1,5 @@
 Package: dymiumExampleProject
-Title: What the Package Does (One Line, Title Case)
+Title: Dymium Example Project
 Version: 0.0.0.9000
 Authors@R: 
     person(given = "First",
@@ -13,3 +13,20 @@ License: `use_mit_license()`, `use_gpl3_license()` or friends to
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
+Imports: 
+    dymiumCore,
+    sf,
+    here,
+    StatMatch,
+    R6,
+    purrr,
+    fs,
+    ggplot2,
+    glue,
+    sf,
+    lgr,
+    crayon,
+    checkmate,
+    rJava
+Remotes:
+  github::dymium-org/dymiumCore
