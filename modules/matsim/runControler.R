@@ -3,6 +3,7 @@
 # default setup, you may edit the below import statments to match your requirements.
 modules::import('dymiumCore')
 modules::import('here', 'here')
+modules::import('checkmate')
 modules::import('glue', 'glue')
 modules::import('rJava', '.jinit', '.jnew', '.jcall')
 # modules::import('rJava', '.jnew', '.jinit')
@@ -13,8 +14,8 @@ helpers <- modules::use(here::here('modules/matsim/helpers.R'))
 modules::export('^run$|^REQUIRED_MODELS$') # default exported functions
 
 REQUIRED_MODELS <-
-  c("config",
-    "lastIteration")
+  c("matsim_config",
+    "matsim_last_iteration")
 
 #' runControler
 #'
@@ -34,6 +35,31 @@ run <- function(world, model = NULL, target = NULL, time_steps = NULL, use_rJava
     return(invisible(world))
   }
 
+  checkmate::assert_list(
+    model,
+    types = c("character", "integer", "numeric"),
+    len = 2,
+    unique = T,
+    any.missing = FALSE,
+    null.ok = FALSE
+  )
+  checkmate::check_names(
+    x = names(model),
+    must.include = REQUIRED_MODELS
+  )
+  checkmate::assert_number(
+    model$matsim_last_iteration,
+    lower = 1,
+    finite = TRUE,
+    null.ok = FALSE,
+    na.ok = FALSE
+  )
+  checkmate::assert_file_exists(
+    x = model$matsim_config,
+    extension = "xml",
+    access = "rw"
+  )
+
   lg$info('Running runControler')
 
   # run matsim
@@ -47,13 +73,6 @@ run <- function(world, model = NULL, target = NULL, time_steps = NULL, use_rJava
 
 # private utility functions (.util_*) -------------------------------------
 execute_matsim = function(model, world, use_rJava = TRUE) {
-  # check model params
-  checkmate::check_names(names(model), must.include = c('config', 'lastIteration'))
-  checkmate::assert_file_exists(model$config, access = 'wr')
-  checkmate::assert_integerish(model$lastIteration, lower = 0, len = 1, null.ok = FALSE)
-
-  .config <- model$config
-  .lastIteration <- model$lastIteration
 
   # create output directory
   outdir <- file.path(active_scenario()$output_dir,
@@ -61,22 +80,22 @@ execute_matsim = function(model, world, use_rJava = TRUE) {
   base::dir.create(outdir, recursive = T)
 
   # modify the config file
-  cf <- helpers$MatsimConfig$new(.config)
+  cf <- helpers$MatsimConfig$new(model$matsim_config)
   cf$set_controler(outputDirectory = outdir,
                    firstIteration = 0,
-                   lastIteration = .lastIteration)
+                   lastIteration = model$matsim_last_iteration)
 
   # save the modified config file
-  cf_dymium <- paste0(tools::file_path_sans_ext(.config), "-dymium.xml")
+  cf_dymium <- paste0(tools::file_path_sans_ext(model$matsim_config), "-dymium.xml")
   xml2::write_xml(cf$config, cf_dymium)
 
   # .call_matsim_system(cf_dymium)
   if (use_rJava) {
-    .call_matsim_rjava(cf_dymium)  
+    .call_matsim_rjava(cf_dymium)
   } else {
     .call_matsim_system(cf_dymium)
   }
-  
+
 
 }
 
@@ -93,7 +112,7 @@ execute_matsim = function(model, world, use_rJava = TRUE) {
       )
     )
   }
-  
+
   # load the jar file
   my_jclasspath <- tryCatch(
     {rJava::.jclassPath()},
@@ -118,14 +137,14 @@ execute_matsim = function(model, world, use_rJava = TRUE) {
 
 # call MATSim.jar directly
 .call_matsim_system = function(config) {
-  
+
   if (Sys.info()[["sysname"]] == "Windows") {
     stop(glue::glue(
       "Calling MATSim.jar from the commandline hasn't been implemented for Windows
       systems please install the `rJava` package to use this event."
     ))
   }
-  
+
 
   # call matsim run controler
   system(glue::glue("java {.matsim_setting$max_memory} -cp \\
