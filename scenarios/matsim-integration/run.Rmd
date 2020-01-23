@@ -1,17 +1,21 @@
 ---
 title: "MATSim integration"
 output: github_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, eval=FALSE)
+knitr::opts_chunk$set(echo = TRUE)
 library(dymiumCore)
 set.seed(728)
 ```
 
 # Introduction
 
-This example, we show how MATSim, an agent-based traffic simulator in Java, can be integrated with dymiumCore. We basically send our individual agents for a ride!
+CAUTION! this example requires a moderate amount of computing resources (especially RAM!) which I have already made a request for (24 Jan 2020). Until we have more computing resources to run this example I suggest you to clone this [repository](https://github.com/dymium-org/dymiumExampleProject) and run it on your machine.
+
+This example we show how MATSim, an agent-based traffic simulator in Java, can be integrated with dymiumCore. We basically send our individual agents for a ride!
 
 On a more serious note, this is a use case where we would like to simulate the impact that our future population would have on the urban traffic condition in the future years. 
 
@@ -173,4 +177,4 @@ __cnt:__ count of occurences
 
 __avl:__ count of the total number agents that were eligible to undergo the event.
 
-We can further analyse the flows that was assign to the network.
+We can further analyse the traffic flow volumes on the network using the MATSim outputs in `scenarios/matsim-integration/outputs`.

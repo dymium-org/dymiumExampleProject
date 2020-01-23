@@ -123,7 +123,7 @@ execute_matsim = function(model, world, use_rJava = TRUE) {
   )
 
   if (!any(grepl('matsim', my_jclasspath))) {
-    .jinit(.matsim_setting$path_to_matsim_jar, parameters = .matsim_setting$max_memory)
+    .jinit(.matsim_setting$path_to_matsim_jar, parameters = c(.matsim_setting$max_memory,"-Djava.awt.headless=true"))
   }
 
   # construct a controler object with the modified config file loaded
@@ -145,9 +145,8 @@ execute_matsim = function(model, world, use_rJava = TRUE) {
     ))
   }
 
-
   # call matsim run controler
-  system(glue::glue("java {.matsim_setting$max_memory} -cp \\
+  system(glue::glue("java -Djava.awt.headless=true {.matsim_setting$max_memory} -cp \\
                     \"{.matsim_setting$path_to_matsim_jar}\":libs/jaxb-runtime.jar:libs/jaxb-xjc.jar:libs/jaxb-jxc.jar:libs/jaxb-api.jar \\
                     org.matsim.run.Controler \\
                     \"{config}\""))
@@ -157,6 +156,6 @@ execute_matsim = function(model, world, use_rJava = TRUE) {
 
 .matsim_setting <-
   list(
-    max_memory = "-Xmx8048m",
+    max_memory = "-Xmx1024m",
     path_to_matsim_jar = here::here('modules/matsim/matsim/matsim-0.10.1.jar')
   )
