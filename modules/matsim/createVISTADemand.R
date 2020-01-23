@@ -62,7 +62,7 @@ run <- function(world, model = NULL, target = NULL, time_steps = NULL) {
   invisible(world)
 }
 
-fuse_vista <- function(IndObj, models) {
+fuse_vista <- function(Ind, models) {
   .start_time <- Sys.time()
   lg$info("Fusing VISTA person with dymium individuals.")
 
@@ -71,7 +71,7 @@ fuse_vista <- function(IndObj, models) {
     .[ADPERSWGT > 0] %>%
     as.data.frame()
 
-  rec <- IndObj$get_data() %>%
+  rec <- Ind$get_data() %>%
     as.data.frame()
 
   # estimate fusion
@@ -87,7 +87,7 @@ fuse_vista <- function(IndObj, models) {
   print(summary(fused_gower_result$sum.dist[, 1]))
 
   # build fused persons
-  pid_col <- IndObj$get_id_col()
+  pid_col <- Ind$get_id_col()
   fused_persons <- create.fused(
     data.rec = rec,
     data.don = don,
