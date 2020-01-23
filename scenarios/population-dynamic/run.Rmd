@@ -3,19 +3,24 @@ title: "Population and household dynamic"
 output: github_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.width = 7,
+                      fig.height = 5)
+library(dymiumCore)
 ```
 
-# Population and household dynamic
+# Introduction
+
+This is an tiny example of a dynamic microsimulation model for modelling population and household dynamic.
 
 ## Download the `demography` module
+
+This example uses the `demography` module from https://github.com/dymium-org/dymiumModules.
 
 ```{r, eval = FALSE}
 library(dymiumCore)
 download_module(name = "demography")
-download_module(name = "matsim")
-set.seed(728)
 ```
 
 ## Set active scenario
@@ -24,6 +29,14 @@ set.seed(728)
 dymiumCore::set_active_scenario(name = "population-dynamic")
 ```
 
+A friendly warning, If you feel that the log messages are too much for you can change it using the follow command.
+
+```{r eval = FALSE}
+library(lgr)
+lgr::lgr$set_threshold(level = "warn")
+```
+
+To set it back to info level simply do `lgr::lgr$set_threshold(level = "info")`. But by default the log threshold is set to the 'info' level.
 
 ## Import events
 
@@ -84,7 +97,11 @@ for (i in seq_along(models)) {
 }
 ```
 
+Please see [the README page](https://github.com/dymium-org/dymiumModules/tree/master/modules/demography) of the module which serves as its documentation. 
+
 # Setup a simulation pipeline
+
+Let's set up a simulation pipeline using the events from the `demography` module. A for-loop is used to iteratively run the pipeline. `$start_iter` manipulates the simulation clock and pass the `world` object down to the events down the simulation pipeline.
 
 ```{r}
 for (i in 1:5) {
@@ -101,7 +118,11 @@ for (i in 1:5) {
 }
 ```
 
+The migration event needs target to determine the number of migrants to join the main population. Target is the number of migrant households to be added. Hence, it is unlikely to get the same number of migrant individuals in every iteration.
+
 # Randomise the sequence of some events
+
+Sometime there isn't a clear logic in which a group of events should be run. We can shuffle the sequence of them in each iteration using `dymiumCore::Pipeline`.
 
 ```{r}
 HouseholdFormationPipe <- Pipeline$new(
@@ -114,6 +135,7 @@ HouseholdFormationPipe <- Pipeline$new(
 )
 ```
 
+`dymiumCore::Pipeline` has a `run(x, shuffle = FALSE)` method which allows it to fit into the main simulation pipeline, as shown below.
 
 ```{r}
 for (i in 6:10) {
@@ -126,16 +148,32 @@ for (i in 6:10) {
 }
 ```
 
-# Visualise the result
+# Visualise the simulation result
 
 ```{r}
 library(ggplot2)
-library(ggplot2)
-library(ggplot2)
-
-log_data <- dymiumCore::get_log(world)
+library(patchwork)
+library(scales)
 history_data <- dymiumCore::get_history(world)
-
 plot_history(x = world, by_entity = T)
 ```
 
+
+```{r}
+log_data <- dymiumCore::get_log(world)
+log_data %>%
+  .[grepl("^cnt:|^avl:", desc), ] %>%
+  .[, value := unlist(value)] %>%
+  .[, group_label := gsub(".*:", "" , x = desc)] %>% 
+  .[, group_label := gsub("_", " " , x = group_label)] %>% 
+  .[, tag := gsub(":.*", "" , x = desc)] %>% .[] %>%
+  ggplot(data = ., aes(x = time, y = value, group = desc, color = tag)) +
+  geom_line() +
+  facet_wrap(~ group_label, scales = "free", labeller = labeller(group_label = label_wrap_gen(25))) +
+  scale_x_continuous(breaks = scales::pretty_breaks()) +
+  scale_y_continuous(breaks = scales::pretty_breaks())
+```
+
+__cnt:__ count of occurences
+
+__avl:__ count of the total number agents that were eligible to undergo the event.
