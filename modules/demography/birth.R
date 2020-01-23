@@ -123,7 +123,7 @@ create_newborns = function(Pop, ids, sex_ratios) {
       # add parents to newborn
       father_id = partner_ids,
       mother_id = ids
-      #' default values - if your individual agents have more attributes than
+      #' default values - if your individual agents have more attributes than 
       #' the basic ones above then the default values for those attributes should
       #' be defined here see the lines below for example
       #' labour_force_status = "not applicable",
