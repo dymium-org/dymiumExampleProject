@@ -109,6 +109,14 @@ fuse_vista <- function(Ind, models) {
     # some people didn't make any trips so we need to filter them out
     .[!is.na(TRIPID)]
 
+  # save some stats
+  Ind$log(desc = "cnt:number_of_trips", value = nrow(trips))
+  mode_counts <- table(trips$Mode_Group)
+  for (i in seq_along(mode_counts)) {
+    clean_mode_name <- gsub(" ", "_", tolower(names(mode_counts)[i]))
+    Ind$log(desc = paste0("cnt:ModeOfTransport-", clean_mode_name), value = mode_counts[i])
+  }
+
   lg$info("{nrow(trips)} trips have been generated.")
   lg$info("Finished in ", format(Sys.time() - .start_time))
   invisible(trips)
