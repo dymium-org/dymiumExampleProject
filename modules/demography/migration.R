@@ -36,7 +36,7 @@ run <- function(world, model = NULL, target = NULL, time_steps = NULL) {
   Hh <- world$get("Household")
 
   # check model
-  pick_models(model, world, REQUIRED_MODELS)
+  model <- pick_models(model, world, REQUIRED_MODELS)
 
   # check target
   if (is.null(target)) {
