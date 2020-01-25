@@ -110,8 +110,8 @@ for (i in seq_along(models)) {
 matsim_runControler_model <-
   list(
     matsim_config = here::here("scenarios/matsim-integration/inputs/matsim/config.xml"),
-    matsim_config_params = list(controler = list(lastIteration = 5)),
-    max_memory = "-Xmx2048m" # 2GBs of RAM
+    matsim_config_params = list(controler = list(lastIteration = 5))
+    # max_memory = "-Xmx2048m" # 2GBs of RAM
   )
 world$add(
   x = readRDS(here::here("scenarios/matsim-integration/inputs/models/vista_persons.rds")), 
