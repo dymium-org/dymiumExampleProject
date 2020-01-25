@@ -15,7 +15,9 @@ modules::export('^run$|^REQUIRED_MODELS$') # default exported functions
 
 REQUIRED_MODELS <-
   c("matsim_config",
-    "matsim_last_iteration")
+    "matsim_config_params",
+    "matsim_path_to_jar",
+    "matsim_max_memory")
 
 #' runControler
 #'
@@ -35,30 +37,42 @@ run <- function(world, model = NULL, target = NULL, time_steps = NULL, use_rJava
     return(invisible(world))
   }
 
-  checkmate::assert_list(
-    model,
-    types = c("character", "integer", "numeric"),
-    len = 2,
-    unique = T,
-    any.missing = FALSE,
-    null.ok = FALSE
-  )
   checkmate::check_names(
     x = names(model),
-    must.include = REQUIRED_MODELS
+    must.include = "matsim_config",
+    subset.of = REQUIRED_MODELS
   )
-  checkmate::assert_number(
-    model$matsim_last_iteration,
-    lower = 1,
-    finite = TRUE,
+
+  checkmate::assert_list(
+    model,
+    any.missing = FALSE,
     null.ok = FALSE,
-    na.ok = FALSE
+    types = c("character", "numeric", "integer", "list")
   )
+
   checkmate::assert_file_exists(
     x = model$matsim_config,
     extension = "xml",
     access = "rw"
   )
+
+  if (!is.null(model$matsim_path_to_jar)) {
+    lg$info('Changing the path to the MATSim jar file from default \\
+            {.matsim_setting$path_to_matsim_jar} to {model$matsim_path_to_jar}')
+    .matsim_setting$path_to_matsim_jar <- model$matsim_path_to_jar
+  }
+
+  checkmate::assert_file_exists(
+    x = .matsim_setting$path_to_matsim_jar,
+    extension = "jar",
+    access = "rw"
+  )
+
+  if (!is.null(model$max_memory)) {
+    lg$info('Changing the maximum amount of memory for MATSim from \\
+            {.matsim_setting$max_memory} to {model$max_memory}')
+    .matsim_setting$max_memory <- model$max_memory
+  }
 
   lg$info('Running runControler')
 
@@ -74,20 +88,23 @@ run <- function(world, model = NULL, target = NULL, time_steps = NULL, use_rJava
 # private utility functions (.util_*) -------------------------------------
 execute_matsim = function(model, world, use_rJava = TRUE) {
 
+  # modify the config file
+  config <- helpers$MatsimConfig$new(model$matsim_config)
+  config$set_list(model$matsim_config_params)
+
   # create output directory
-  outdir <- file.path(active_scenario()$output_dir,
+  outdir <- file.path(get_active_scenario()$output_dir,
                       paste0('iter-', world$get_time()), 'matsim')
   base::dir.create(outdir, recursive = T)
-
-  # modify the config file
-  cf <- helpers$MatsimConfig$new(model$matsim_config)
-  cf$set_controler(outputDirectory = outdir,
-                   firstIteration = 0,
-                   lastIteration = model$matsim_last_iteration)
+  lg$info(
+    "Overwriting controler.outputDirectory from '{old_outdir}' to '{outdir}'",
+    old_outdir = config$get(module_name = "controler", param_name = "outputDirectory")
+  )
+  config$set(module_name = "controler", param_name = "outputDirectory", value = outdir)
 
   # save the modified config file
   cf_dymium <- paste0(tools::file_path_sans_ext(model$matsim_config), "-dymium.xml")
-  xml2::write_xml(cf$config, cf_dymium)
+  xml2::write_xml(config$config, cf_dymium)
 
   # .call_matsim_system(cf_dymium)
   if (use_rJava) {
@@ -95,7 +112,6 @@ execute_matsim = function(model, world, use_rJava = TRUE) {
   } else {
     .call_matsim_system(cf_dymium)
   }
-
 
 }
 
@@ -156,6 +172,6 @@ execute_matsim = function(model, world, use_rJava = TRUE) {
 
 .matsim_setting <-
   list(
-    max_memory = "-Xmx1024m",
+    max_memory = "-Xmx2048m",
     path_to_matsim_jar = here::here('modules/matsim/matsim/matsim-0.10.1.jar')
   )
