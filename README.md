@@ -21,5 +21,7 @@ clone this project and run it on your local machine, if possible.
 
 ## Need help building a microsimulation model using `dymiumCore`?
 
-Please file an issue in this repo and I will gladly help you build your
-first microsimulation model using `dymiumCore`\! :)
+Please file an issue in this repo and we will gladly help you build your
+first microsimulation model using `dymiumCore`\! :) The package is still
+maturing and we are hoping to get your feedback from this interaction to
+improve the package and its documentation.
