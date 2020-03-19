@@ -51,8 +51,18 @@ event_demography_separation <- modules::use(here::here("modules/demography/separ
 event_demography_divorce <- modules::use(here::here("modules/demography/divorce.R"))
 event_demography_breakup <- modules::use(here::here("modules/demography/breakup.R"))
 event_demography_cohabit <- modules::use(here::here("modules/demography/cohabit.R"))
+event_demography_leavehome <- modules::use(here::here("modules/demography/leavehome.R"))
 event_demography_migration <- modules::use(here::here("modules/demography/migration.R"))
 ```
+
+Alternatively, the `modules` package also allow importing all R scripts from a directory, as below.
+
+```{r eval = FALSE}
+demography <- modules::use(here::here("modules/demography"))
+```
+
+Now each event can be referred by their name, eg `demography$age` instead of `event_demography_age`. This is a matter of style as both of the options work the same.
+
 
 ## Setup a world
 
@@ -62,7 +72,7 @@ world <- World$new()
 # add agents
 world$add(x = Population$new(ind_data = toy_individuals, 
                              hh_data = toy_households, 
-                             pid_col = "pid", 
+                             pid_col = c("pid", "partner_id", "father_id", "mother_id"), 
                              hid_col = "hid"))
 
 # add models
@@ -104,7 +114,8 @@ Please see [the README page](https://github.com/dymium-org/dymiumModules/tree/ma
 Let's set up a simulation pipeline using the events from the `demography` module. A for-loop is used to iteratively run the pipeline. `$start_iter` manipulates the simulation clock and pass the `world` object down to the events down the simulation pipeline.
 
 ```{r}
-for (i in 1:5) {
+for (i in 1:10) {
+  message("iteration: ", i)
   world$start_iter(time_step = i, unit = "year") %>%
     event_demography_age$run(.) %>%
     event_demography_birth$run(.) %>%
@@ -114,15 +125,16 @@ for (i in 1:5) {
     event_demography_divorce$run(.) %>%
     event_demography_breakup$run(.) %>%
     event_demography_separation$run(.) %>%
+    event_demography_leavehome$run(.) %>%
     event_demography_migration$run(., target = 10)
 }
 ```
 
 The migration event needs target to determine the number of migrants to join the main population. Target is the number of migrant households to be added. Hence, it is unlikely to get the same number of migrant individuals in every iteration.
 
-# Randomise the sequence of some events
+# Randomise the order of events
 
-Sometime there isn't a clear logic in which a group of events should be run. We can shuffle the sequence of them in each iteration using `dymiumCore::Pipeline`.
+Sometimes there isn't a clear order in which a group of events should be run or you just simply want to test the order impact on your model. A group of events can be randomly shuffle in each iteration by creating a `dymiumCore::Pipeline` object and insert event functions inside. Note that, the order in which you insert the event functions in side your `Pipeline` object doesn't matter at all, since the order will be randomised.
 
 ```{r}
 HouseholdFormationPipe <- Pipeline$new(
@@ -135,15 +147,17 @@ HouseholdFormationPipe <- Pipeline$new(
 )
 ```
 
-`dymiumCore::Pipeline` has a `run(x, shuffle = FALSE)` method which allows it to fit into the main simulation pipeline, as shown below.
+`dymiumCore::Pipeline` has a `run(x, shuffle)` method which allows it to fit into the main simulation pipeline, as shown below. Setting the `shuffle` argument to `TRUE` will make the event functions, inside the Pipeline object, run in a random order.
 
 ```{r}
-for (i in 6:10) {
+for (i in 11:20) {
+  message("iteration: ", i)
   world$start_iter(time_step = i, unit = "year") %>%
     event_demography_age$run(.) %>%
     event_demography_birth$run(.) %>%
     event_demography_death$run(.) %>%
     HouseholdFormationPipe$run(., shuffle = T) %>%
+    event_demography_leavehome$run(.) %>%
     event_demography_migration$run(., target = 10)
 }
 ```
@@ -155,7 +169,10 @@ library(ggplot2)
 library(patchwork)
 library(scales)
 history_data <- dymiumCore::get_history(world)
-plot_history(x = world, by_entity = T)
+plot_history(x = world, by_entity = T) +
+  facet_wrap(~ event) +
+  guides(fill = 'none') +
+  labs(y = "Occurrences", x = "Time")
 ```
 
 
@@ -174,6 +191,6 @@ log_data %>%
   scale_y_continuous(breaks = scales::pretty_breaks())
 ```
 
-__cnt:__ count of occurences
+__cnt:__ occurences
 
-__avl:__ count of the total number agents that were eligible to undergo the event.
+__avl:__ the total number agents that were eligible to undergo the event.
