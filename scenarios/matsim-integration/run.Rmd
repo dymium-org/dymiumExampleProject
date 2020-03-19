@@ -12,20 +12,20 @@ set.seed(728)
 ```
 
 # Introduction
+This example requires a lot of computing resources. You can download this [repository](https://github.com/dymium-org/dymiumExampleProject) and run it on your machine.
 
-CAUTION! this example requires a moderate amount of computing resources (especially RAM!) which I have already made a request for (24 Jan 2020). Until we have more computing resources to run this example I suggest you to clone this [repository](https://github.com/dymium-org/dymiumExampleProject) and run it on your machine.
-
-This example we show how MATSim, an agent-based traffic simulator in Java, can be integrated with dymiumCore. We basically send our individual agents for a ride!
+In this example, we show how MATSim, an agent-based traffic simulator in Java, can be integrated with dymiumCore. We basically send our agents for a ride!
 
 On a more serious note, this is a use case where we would like to simulate the impact that our future population would have on the urban traffic condition in the future years. 
 
-This example is a very simple one where we replace an activity-based model that is usually used for assigning daily travel activities with a travel demand fusion model. The travel demand fusion model uses the records in [VISTA](https://transport.vic.gov.au/about/data-and-research/vista), the household travel survey of Victoria, and fuses with the individual data from the simulation.
+This example is a very simple one where we replace an activity-based model that is usually used for assigning daily travel activities with a travel demand fusion model. The travel demand fusion model uses the data in [VISTA](https://transport.vic.gov.au/about/data-and-research/vista) as the donor dataset, the household travel survey of Victoria, and fuses with the individual data from the simulation.
 
 ## Download the `matsim` module
 
 ```{r eval = FALSE}
 library(dymiumCore)
 download_module("matsim")
+download_module("demography")
 ```
 
 ## Set active scenario
@@ -57,6 +57,7 @@ event_demography_separation <- modules::use(here::here("modules/demography/separ
 event_demography_divorce <- modules::use(here::here("modules/demography/divorce.R"))
 event_demography_breakup <- modules::use(here::here("modules/demography/breakup.R"))
 event_demography_cohabit <- modules::use(here::here("modules/demography/cohabit.R"))
+event_demography_leavehome <- modules::use(here::here("modules/demography/leavehome.R"))
 event_demography_migration <- modules::use(here::here("modules/demography/migration.R"))
 # MATSim
 event_matsim_createVISTADemand <- modules::use(here::here('modules/matsim/createVISTADemand.R'))
@@ -71,7 +72,7 @@ world <- World$new()
 # add agents
 world$add(x = Population$new(ind_data = toy_individuals, 
                              hh_data = toy_households, 
-                             pid_col = "pid", 
+                             pid_col = c("pid", "partner_id", "father_id", "mother_id"),
                              hid_col = "hid"))
 
 # add models
@@ -139,6 +140,7 @@ for (i in 1:5) {
     event_demography_divorce$run(.) %>%
     event_demography_breakup$run(.) %>%
     event_demography_separation$run(.) %>%
+    event_demography_leavehome$run(.) %>%
     event_demography_migration$run(., target = 10) %>%
     event_matsim_createVISTADemand$run(.) %>%
     event_matsim_runcontroler$run(.,
@@ -156,7 +158,10 @@ library(ggplot2)
 library(patchwork)
 library(scales)
 history_data <- dymiumCore::get_history(world)
-plot_history(x = world, by_entity = T)
+plot_history(x = world, by_entity = T) %>%
+  facet_wrap(~ event) +
+  guides(fill = 'none') +
+  labs(y = "Occurrences", x = "Time")
 ```
 
 ```{r}
