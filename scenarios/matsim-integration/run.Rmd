@@ -22,10 +22,11 @@ This example is a very simple one where we replace an activity-based model that 
 
 ## Download the `matsim` module
 
-```{r eval = FALSE}
-library(dymiumCore)
-download_module("matsim")
-download_module("demography")
+To use the matsim module you must download the module and install java 10 and a matsim java executable, to save your time I already setup everything for you in this repo. Please see the [readme](https://github.com/dymium-org/dymiumModules/tree/master/modules/matsim) file of the matsim module for an installation guide.
+
+```{r}
+# dymiumCore::download_module("matsim")
+dymiumCore::download_module("demography")
 ```
 
 ## Set active scenario
@@ -147,7 +148,7 @@ for (i in 1:5) {
                                   model = matsim_runControler_model,
                                   time_steps = c(1, 5),
                                   use_rJava = TRUE) %>%
-    dm_save(.)
+    dm_save(.) # save world to 'scenarios/population-dynamic/outputs' at the end of iteration
 }
 ```
 

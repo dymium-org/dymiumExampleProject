@@ -16,11 +16,10 @@ This is an tiny example of a dynamic microsimulation model for modelling populat
 
 ## Download the `demography` module
 
-This example uses the `demography` module from https://github.com/dymium-org/dymiumModules.
+This example uses the `demography` module from https://github.com/dymium-org/dymiumModules. You must run the chuck below to download the module. If 
 
-```{r, eval = FALSE}
-library(dymiumCore)
-download_module(name = "demography")
+```{r}
+dymiumCore::download_module(name = "demography")
 ```
 
 ## Set active scenario
